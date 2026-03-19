@@ -28,18 +28,15 @@ function renderSVG(container, heights, waterPerColumn) {
     viewBox: `0 0 ${svgWidth} ${svgHeight}`,
   });
 
-  // Draw each column, row by row from top
   for (let col = 0; col < totalCols; col++) {
-    const blockHeight = heights[col];
-    const waterHeight = waterPerColumn[col];
-    const emptyHeight = totalRows - blockHeight - waterHeight;
-
+    const blockRows = heights[col];
+    const waterRows = waterPerColumn[col];
+    const emptyRows = totalRows - blockRows - waterRows;
     const x = SVG_PADDING + col * CELL_WIDTH;
 
-    drawCellStack(svg, x, emptyHeight, waterHeight, blockHeight, totalRows);
+    drawCellStack(svg, x, emptyRows, waterRows, blockRows);
   }
 
-  // Overlay grid lines for the table-style look
   drawGridLines(svg, totalRows, totalCols, svgWidth, svgHeight);
 
   container.innerHTML = "";
@@ -48,65 +45,53 @@ function renderSVG(container, heights, waterPerColumn) {
 
 /**
  * Draws stacked cells (empty → water → block) for one column.
+ * Row offsets are explicit so each zone's start position is immediately clear.
  */
-function drawCellStack(svg, x, emptyRows, waterRows, blockRows, totalRows) {
-  let currentRow = 0;
-
-  currentRow = drawCells(svg, x, currentRow, emptyRows, COLOR_EMPTY);
-  currentRow = drawCells(svg, x, currentRow, waterRows, COLOR_WATER);
-  drawCells(svg, x, currentRow, blockRows, COLOR_BLOCK);
+function drawCellStack(svg, x, emptyRows, waterRows, blockRows) {
+  drawCells(svg, x, 0,                       emptyRows, COLOR_EMPTY);
+  drawCells(svg, x, emptyRows,               waterRows, COLOR_WATER);
+  drawCells(svg, x, emptyRows + waterRows,   blockRows, COLOR_BLOCK);
 }
 
 /**
  * Draws `count` filled cells at column x starting from `startRow`.
- * Returns the next available row index.
  */
 function drawCells(svg, x, startRow, count, color) {
   for (let row = startRow; row < startRow + count; row++) {
     const y = SVG_PADDING + row * CELL_HEIGHT;
-    const rect = createSVGElement("rect", {
-      x,
-      y,
+    svg.appendChild(createSVGElement("rect", {
+      x, y,
       width: CELL_WIDTH,
       height: CELL_HEIGHT,
       fill: color,
-    });
-    svg.appendChild(rect);
+    }));
   }
-  return startRow + count;
 }
 
 /**
- * Draws the grid lines over the entire SVG for table-style appearance.
+ * Draws the grid lines over the entire SVG for the table-style look.
  */
 function drawGridLines(svg, totalRows, totalCols, svgWidth, svgHeight) {
   for (let row = 0; row <= totalRows; row++) {
     const y = SVG_PADDING + row * CELL_HEIGHT;
-    svg.appendChild(
-      createSVGElement("line", {
-        x1: SVG_PADDING,
-        y1: y,
-        x2: svgWidth - SVG_PADDING,
-        y2: y,
-        stroke: COLOR_GRID_LINE,
-        "stroke-width": 1,
-      })
-    );
+    drawLine(svg, SVG_PADDING, y, svgWidth - SVG_PADDING, y);
   }
 
   for (let col = 0; col <= totalCols; col++) {
     const x = SVG_PADDING + col * CELL_WIDTH;
-    svg.appendChild(
-      createSVGElement("line", {
-        x1: x,
-        y1: SVG_PADDING,
-        x2: x,
-        y2: svgHeight - SVG_PADDING,
-        stroke: COLOR_GRID_LINE,
-        "stroke-width": 1,
-      })
-    );
+    drawLine(svg, x, SVG_PADDING, x, svgHeight - SVG_PADDING);
   }
+}
+
+/**
+ * Appends a single styled grid line to the SVG.
+ */
+function drawLine(svg, x1, y1, x2, y2) {
+  svg.appendChild(createSVGElement("line", {
+    x1, y1, x2, y2,
+    stroke: COLOR_GRID_LINE,
+    "stroke-width": 1,
+  }));
 }
 
 /**
